@@ -1,0 +1,479 @@
+---
+title: "Apprentissage Statistique"
+subtitle: "Application"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, eval=FALSE)
+```
+
+```{r Libraries, include=FALSE}
+library(dplyr)
+library(stats)
+library(tidyr)
+library(lubridate)
+library(stringr)
+library(gridExtra)
+library(readr)
+library(e1071)
+library(kernlab)
+library(lattice)
+library(tidyr)
+library(ggplot2)
+library(ggmap)
+library(psych)
+library(GGally)
+library(lubridate)
+library(stringi)
+library(forcats)
+library(stringr)
+library(corrplot)
+```
+
+We will work with the dataset of Airbnb for the city of Paris
+
+```{r data importation}
+data <- read.csv("https://raw.githubusercontent.com/lavergnetse/Data/master/listings_Paris.csv", sep = ",", stringsAsFactors = TRUE)
+
+glimpse(data)
+```
+
+## Data pre-processing
+
+### 1) Keep only the observations located inside of Paris. You can use the variable *zipcode* which indicate the department to help you. 
+
+```{r question_1, exercise=TRUE}
+# Overview of the zipcode
+
+# Extraction of the department number
+
+# Eliminate observations that are not in the department 75
+
+```
+
+```{r question_1-solution}
+# Overview of the zipcode
+summary(data$zipcode)
+
+# Extraction of the department number
+data$department <- str_sub(as.character(data$zipcode), start = 1, end = 2)
+
+# Eliminate observations that are not in the department 75
+data <- data[data$department=="75",]
+```
+
+
+### 2) Gather in a new vector the variables that give informations about the housing (price, location, attributes, rating), the host attributes and the rental rules. Keep the *zipcode* as an indicator of the district (last two numbers). Compile a new dataframe which contain only these variables.   
+
+```{r question_2, exercise=TRUE}
+
+```
+
+```{r question_2-solution}
+listings_keep <- c("id", "price", "host_is_superhost", "zipcode",
+                   "latitude","longitude", "property_type", "accommodates",
+                   "bedrooms", "beds", "cleaning_fee",
+                   "minimum_nights", "availability_365",
+                   "review_scores_rating","cancellation_policy")
+
+data <- data[,listings_keep]
+```
+
+
+### 3) Create a new variable called "arrondissement" that give informations about the district. Keep only the observations that belong to arronssements 1 to 20.
+
+```{r question_3, exercise=TRUE}
+# Create the new variable
+
+# Overview of the variable
+
+# Keep only the observation with valid arrondissement
+
+# Remove the column zipcode 
+
+
+```
+
+```{r question_3-solution}
+# Create the new variable
+data$arrondissement <- str_sub(as.character(data$zipcode), start = 4, end = 5)
+
+# Overview of the variable
+summary(as.factor(data$arrondissement))
+
+# Keep only the observation with valid arrondissement
+districts <- c("", "00")
+data <- data[!data$arrondissement %in% districts,]
+data$arrondissement[data$arrondissement == "8"] <- "08"
+
+# Remove the column zipcode 
+data <- data[,-which(names(data) == "zipcode")]
+```
+
+
+### 4) Is there any duplicated observations ? Eliminate them if they exist.
+
+```{r question_4, exercise=TRUE}
+
+```
+
+```{r question_4-solution}
+sum(duplicated(data$id))
+```
+
+
+### 5) Remove the $ sign for both *price* and *cleaning_fee*.
+
+```{r question_5, exercise=TRUE}
+
+```
+
+```{r question_5-solution}
+data$price = as.numeric(gsub("[\\$,]", "", data$price))
+
+data$cleaning_fee = as.numeric(gsub("[\\$,]", "", data$cleaning_fee))
+```
+
+
+### 6) Remove the observations where the price is null. Replace by NA's the missing values that are represented by empty cells.
+
+```{r question_6, exercise=TRUE}
+# Price
+
+# See which columns have empty cells
+
+# Replace the empty cases by NA's (useful function that automatically convert the factor
+# into character)
+
+```
+
+```{r question_6-solution}
+# Price
+data <- data %>% filter(price > 0) 
+
+# See which columns have empty cells
+empty_cells <- as.data.frame(colSums(data == ""))
+empty_cells
+
+# Replace the empty cases by NA's (useful function that automatically convert the factor
+# into character)
+data <- data %>% mutate_at(.vars = c("host_is_superhost", "cancellation_policy"), 
+                           .funs = list(~ifelse(.=="", NA, as.character(.))))
+
+```
+
+
+### 7) In wich other variables is there NA ?  
+
+```{r question_7, exercise=TRUE}
+# NA count
+
+```
+
+```{r question_7-solution}
+# NA count 
+na_count <- as.data.frame(colSums(data%>%is.na(.)))
+na_count
+```
+
+
+### 8) Replace the NA in the discrete variables by performing median imputation. For the categrorial ones, replace NA simply by the mode (the most frequent value). Finally for *cleaning_fee*, set to 0 the observation with NA. 
+
+```{r question_8, exercise=TRUE}
+#  === Bedrooms === 
+
+#  === Beds === 
+
+# === Host is superhost ===
+
+# === Review scores rating ===
+
+# === Cleaning fee ===
+
+
+```
+
+```{r question_8-solution}
+#  === Bedrooms === 
+
+data <- data %>%
+  group_by(
+    property_type,
+    accommodates) %>%
+  mutate(bedrooms=ifelse(is.na(bedrooms),
+                         median(bedrooms,na.rm = T),bedrooms)) %>%
+  ungroup()
+
+#  === Beds === 
+
+data <- data %>%
+  group_by(
+    property_type,
+    accommodates,
+    bedrooms) %>%
+  mutate(beds=ifelse(is.na(beds),
+                         median(beds,na.rm=T),beds)) %>%
+  ungroup()
+
+# === Host is superhost ===
+
+data[is.na(data$host_is_superhost),"host_is_superhost"] <- "f"
+
+# === Review scores rating ===
+
+data <- data %>%
+  group_by(arrondissement,
+           accommodates,
+           property_type,
+           host_is_superhost) %>%
+  mutate(review_scores_rating=ifelse(is.na(review_scores_rating), 
+                                     median(review_scores_rating,na.rm=T),
+                                     review_scores_rating)) %>%
+  ungroup()
+
+
+# === Cleaning fee ===
+
+data[is.na(data$cleaning_fee), "cleaning_fee"] <- 0
+```
+
+
+### 9) Are there still NAs ? If yes remove these observations.
+
+```{r question_9, exercise=TRUE}
+
+```
+
+```{r question_9-solution}
+sum(is.na(data))
+data <- na.omit(data)
+```
+
+
+### 10) Create subgroup for the categorical variables : 
+
+- 4 subgroups for *property_type*: Entire_home ; Private_room ; Shared_room and other
+- 2 subgroups for *cancellation_policy* : strict vs flexible
+
+```{r question_10, exercise=TRUE}
+# # ===== ===== Property type ===== =====
+
+# We groups all 32 subgroups of housing types into 3 big groups
+
+# # ===== ===== Cancellation policy ===== =====
+
+```
+
+```{r question_10-solution}
+# # ===== ===== Property type ===== =====
+
+# We groups all 32 subgroups of housing types into 3 big groups
+
+Entire_home <- c("Aparthotel","Apartment", "Condominium", "Earth house", 
+                 "Serviced apartment", "Loft", "Dome house","Tiny house", 
+                 "Townhouse", "House", "Villa")
+
+Shared_room <- c("Dorm", "Hostel", "Guesthouse")
+
+Private_room <- c("Bed and breakfast", "Boutique hotel", "Hotel",
+                  "Guest suite", "In-law")
+
+Other <- c("Barn","Boat", "Bungalow", "Cabin", "Campsite", "Cave", "Cottage", 
+           "Farm stay", "Houseboat", "Island", "Nature lodge", "Other", "Plane")
+
+data$property_type <- as.character(data$property_type)
+
+data <-
+  mutate(data,
+         property_type = ifelse(property_type %in% Entire_home,
+                                "Entire_home", property_type),
+         property_type = ifelse(property_type %in% Shared_room,
+                                "SharedRoom", property_type),
+         property_type = ifelse(property_type %in% Private_room,
+                                "PrivateRoom", property_type),
+         property_type = ifelse(property_type %in% Other,
+                                "Others", property_type))
+
+
+# # ===== ===== Cancellation policy ===== =====
+
+strict <- c("strict_14_with_grace_period", "super_strict_30", "super_strict_60", 
+            "strict", "luxury_super_strict_95")
+
+flexible <- c("flexible", "moderate", "luxury_moderate")
+
+data$cancellation_policy <- as.character(data$cancellation_policy)
+
+data <-
+  mutate(data,
+         cancellation_policy = ifelse(cancellation_policy %in% strict,
+                                "Strict", cancellation_policy),
+         cancellation_policy = ifelse(cancellation_policy %in% flexible,
+                                "Flexible", cancellation_policy))
+```
+
+
+### 11) Download the new dataframe
+
+```{r question_11, exercise=TRUE}
+
+```
+
+```{r question_11-solution, eval=FALSE}
+write.csv(data, "/Users/.../paris_data.csv", row.names = FALSE)
+```
+
+
+## Data Analysis
+
+```{r import cleaned data, eval=FALSE}
+data <- read.csv("https://raw.githubusercontent.com/lavergnetse/Data/master/paris_data.csv", sep = ",", stringsAsFactors = TRUE)
+``` 
+
+### 1) Look at the distribution of the property type and the location (*arrondissement*).
+
+```{r question_12, exercise=TRUE}
+
+```
+
+```{r question_12-solution}
+data$arrondissement <- as.factor(data$arrondissement)
+interest_varables <- c("arrondissement", "property_type")
+
+library(ggthemes)
+
+for (i in interest_varables) {
+  plot <- ggplot(mapping = aes_string(x = fct_infreq(data[,i]),
+                                     fill = data[,i])) +
+    geom_bar(width = 1, colour = "black", show.legend = F,
+             aes(y = ((..count..)/sum(..count..)))) +
+    scale_y_continuous(labels = scales::percent) +
+    theme_economist() + labs(x = "", y = "") +
+    ggtitle(str_replace_all(str_to_title(i), c("_" = " ")))
+  print(plot)
+}
+```
+
+
+### 2) Perform the logarithmic transformation of the price. Then compare the price by property type.
+
+```{r question_13, exercise=TRUE}
+
+```
+
+```{r question 13-solution}
+data$price <- log(data$price) 
+
+ggplot(data, aes(x = property_type, y = price)) +
+  geom_boxplot(outlier.colour = "darkblue", outlier.size = 0.5,
+               color="deepskyblue", fill="cyan", alpha=0.2) +
+  ggtitle("Average Airbnb prices per night by property type") +
+  labs(x = "", y = "Average prices per night (in log)") + 
+  theme_economist()
+```
+
+
+### 3) Remove the outliers for *price*. Compare one more time the price by property type.
+
+```{r question_14, exercise=TRUE}
+# Compute upper & lower limit
+
+```
+
+```{r question 14-solution}
+Q <- quantile(data$price, probs=c(.25, .75))
+
+# Compute upper & lower limit
+upper_limit <- Q[2] + 1.5 * IQR(data$price)
+lower_limit <- Q[1] - 1.5 * IQR(data$price)
+data <- data %>% filter (price <= upper_limit & price >= lower_limit)
+
+# New price
+ggplot(data, aes(x = property_type, y = price)) +
+  geom_boxplot(outlier.colour = "darkblue", outlier.size = 0.5,
+               color="deepskyblue", fill="cyan", alpha=0.2) +
+  ggtitle("Average Airbnb prices per night by property type") +
+  labs(x = "", y = "Average prices per night (in log)") + 
+  theme_economist()
+```
+
+
+### 4) Represent on a map the price per arrondissement.
+
+```{r question_15, exercise=TRUE, message=FALSE}
+
+```
+
+```{r question 15-solution}
+# Define the baseline (play with your parameters such as: min(longitude), max(latitude), 
+# the level of zoom, ...)
+borders <- c(bottom  = 48.8,
+             top     = 48.9,
+             left    = 2.25,
+             right   = 2.4)
+
+map <- get_stamenmap(borders, zoom = 14, maptype = "terrain", crop = FALSE)
+
+secteur <- data %>% group_by(arrondissement) %>%
+  summarize(longitude = median(longitude),
+            latitude = median(latitude),
+            prix_moyen = mean(price))
+
+# Construct the map
+ggmap(map) +
+  geom_point(secteur, shape = 19,
+             mapping = aes(x = longitude, y = latitude,
+                           col = prix_moyen)) +
+  scale_colour_gradient(low = "blue", high = "red") +
+  theme(plot.title = element_text(hjust = 0.5),
+               plot.background = element_rect(fill = "#BFD5E3")) +
+  labs(x = "", y = "", col = "Average price") +
+  ggtitle("Average price by Arrondissement") + 
+  geom_label(secteur,
+             mapping = aes(longitude, latitude,
+                           label = arrondissement),
+             size = 1.8, fontface = "bold",
+             nudge_x = 0, nudge_y = 0.005)
+```
+
+
+### 5) Remove the variables that are not relevant for prediction. Then create dummies for *host_is_superhost*, *property_type* and *cancellation_policy*.
+
+```{r question_16, exercise=TRUE}
+
+```
+
+```{r question_16-solution}
+library(caret)
+
+# Create a subset of the data to use in prediction
+data_model <- data %>% select(-c("id", "arrondissement", "latitude", "longitude"))
+
+# Dummies
+dummies <- dummyVars(price ~., data_model, sep = "_")
+new_set <- as.data.frame(predict(dummies, newdata = data_model))
+data_model <- cbind(data_model$price, new_set)
+```
+
+### 6) Test/Train set
+
+```{r question_17, exercise=TRUE}
+
+```
+
+```{r question_17-solution}
+colnames(data_model)[which(names(data_model) == "data_model$price")] <- "price"
+
+trainIndex <- createDataPartition(data_model$price, 
+                                  p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+data_train <- data_model[trainIndex,]
+data_test  <- data_model[-trainIndex,]
+```
+
