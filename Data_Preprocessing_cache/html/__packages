@@ -1,10 +1,4 @@
 base
-methods
-datasets
-utils
-grDevices
-graphics
-stats
 knitr
 dplyr
 tidyr
@@ -17,3 +11,6 @@ kernlab
 lattice
 ggplot2
 ggthemes
+survival
+Formula
+Hmisc

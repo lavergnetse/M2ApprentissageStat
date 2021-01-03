@@ -1,1 +1,31 @@
 Libraries	
+import raw data	files
+select predictors	listings	listings_keep
+1st inconsistent values	listings
+unnamed-chunk-1	listings
+check data structure	
+2nd inconsistent values	listings
+unnamed-chunk-2	listings
+unnamed-chunk-3	listings
+unnamed-chunk-4	listings
+export new data	
+factor into character	mydata
+count NA	na_count
+NA correction Bedrooms	
+unnamed-chunk-5	mydata
+NA correction Cleaning fee	mydata
+NA correction Host is superhost	mydata
+NA correction Review scores rating	
+unnamed-chunk-6	mydata
+unnamed-chunk-7	mydata
+unnamed-chunk-8	
+categorical variables	
+unnamed-chunk-9	Appartment	House	mydata	Other	Private_room	Shared_room
+unnamed-chunk-10	
+unnamed-chunk-11	mydata
+unnamed-chunk-12	
+unnamed-chunk-13	mydata
+unnamed-chunk-14	
+unnamed-chunk-15	mydata
+unnamed-chunk-16	mydata
+export cleaned data	

@@ -422,6 +422,3 @@ We finally export our cleaned database for the next steps of the project.
 ```{r export cleaned data, eval = FALSE}
 write.csv(mydata, "/Users/lemauffjulien/Desktop/data/clean_data.csv", row.names = FALSE) 
 ```
-
-
-

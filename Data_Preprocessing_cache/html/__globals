@@ -1,1 +1,31 @@
 Libraries	library
+import raw data	::	read.csv
+select predictors	c	files
+1st inconsistent values	!	$	duplicated
+unnamed-chunk-1	$	complete.cases
+check data structure	::	library	listings
+2nd inconsistent values	$	$<-	as.numeric	gsub
+unnamed-chunk-2	$	$<-	[<-	==
+unnamed-chunk-3	%>%	==	>	availability_365	count	filter	price
+unnamed-chunk-4	%>%	>=	accommodates	beds	filter
+export new data	listings	write.csv
+factor into character	read.csv	T
+count NA	%>%	.	as.data.frame	colSums	is.na	mydata
+NA correction Bedrooms	aes	bedrooms	geom_histogram	ggplot	ggtitle	mydata	theme_economist
+unnamed-chunk-5	%>%	accommodates	bedrooms	group_by	ifelse	is.na	median	mutate	property_type	T	ungroup
+NA correction Cleaning fee	$	[<-	is.na
+NA correction Host is superhost	$	[<-	is.na
+NA correction Review scores rating	aes	geom_histogram	ggplot	ggtitle	mydata	review_scores_rating	theme_economist
+unnamed-chunk-6	%>%	bed_type	group_by	host_is_superhost	ifelse	is.na	median	mutate	neighbourhood_cleansed	property_type	review_scores_rating	T	ungroup
+unnamed-chunk-7	$	[<-	is.na	median	T
+unnamed-chunk-8	is.na	mydata	sum
+categorical variables	$	..count..	::	aes	bed_type	cancellation_policy	F	geom_bar	geom_text	ggplot	ggtitle	labs	levels	mydata	scale_y_continuous	sum	theme_economist
+unnamed-chunk-9	$	$<-	as.character	c	ifelse	mutate	property_type
+unnamed-chunk-10	..count..	::	aes	F	geom_bar	geom_text	ggplot	ggtitle	labs	mydata	property_type	scale_y_continuous	sum	theme_economist
+unnamed-chunk-11	!	$	==
+unnamed-chunk-12	..count..	::	aes	F	geom_bar	geom_text	ggplot	ggtitle	labs	mydata	property_type	scale_y_continuous	sum	theme_economist
+unnamed-chunk-13	$	$<-	==	as.character	cancellation_policy	ifelse	mutate
+unnamed-chunk-14	..count..	::	aes	cancellation_policy	F	geom_bar	geom_text	ggplot	ggtitle	labs	mydata	scale_y_continuous	sum	theme_economist
+unnamed-chunk-15	==	names	which
+unnamed-chunk-16	==	host_is_superhost	ifelse	mutate
+export cleaned data	mydata	write.csv

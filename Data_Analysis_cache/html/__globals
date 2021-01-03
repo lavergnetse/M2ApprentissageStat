@@ -1,0 +1,24 @@
+Libraries	library
+import cleaned data	read.csv
+unnamed-chunk-1	element_rect	element_text
+unnamed-chunk-2	%>%	..count..	::	aes	aes_string	c	F	fct_infreq	for	geom_bar	geom_text	ggplot	ggtitle	is.factor	labs	neighbourhood_cleansed	neighbourhood_group_cleansed	print	rename	scale_y_continuous	select_if	str_replace_all	str_to_title	sum	theme
+unnamed-chunk-3	..density..	aes	c	data	for	geom_density	geom_histogram	ggplot	ggtitle	grid.arrange	labs	log	paste	print	str_replace_all	str_to_title	theme
+unnamed-chunk-4	$	$<-	log
+unnamed-chunk-5	$	%>%	<=	c	filter	IQR	price	quantile
+unnamed-chunk-6	..density..	aes	c	data	features_discrete	for	geom_density	geom_histogram	ggplot	ggtitle	labs	print	str_replace_all	str_to_title	theme
+unnamed-chunk-7	c	data	summary
+unnamed-chunk-8	$	&	<=
+unnamed-chunk-9	..density..	aes	c	data	features_discrete	for	geom_density	geom_histogram	ggplot	ggtitle	labs	print	str_replace_all	str_to_title	theme
+unnamed-chunk-10	%>%	[<-	>=	accommodates	as.factor	bedrooms	beds	c	for	ifelse	mutate
+unnamed-chunk-11	..count..	::	aes	aes_string	c	data	F	fac_feature	for	geom_bar	geom_text	ggplot	ggtitle	labs	print	scale_y_continuous	str_replace_all	str_to_title	sum	theme
+unnamed-chunk-12	..prop..	..x..	::	~	aes	borough	c	data	element_blank	element_rect	element_text	facet_grid	factor	geom_bar	geom_text	ggplot	ggtitle	labs	property_type	scale_color_discrete	scale_y_continuous	theme
+unnamed-chunk-13	aes	borough	data	geom_boxplot	ggplot	ggtitle	labs	price	theme_economist
+unnamed-chunk-14	aes	data	geom_boxplot	ggplot	ggtitle	labs	price	property_type	theme_economist
+unnamed-chunk-15	aes	borough	data	geom_boxplot	ggplot	ggtitle	labs	price	property_type	scale_fill_discrete	theme
+unnamed-chunk-16	$	c	data	get_stamenmap	max	min
+unnamed-chunk-17	$	$<-	%>%	aes	availability_365	borough	disponibilité_moyenne	exp	geom_label	geom_point	ggmap	ggtitle	group_by	labs	latitude	longitude	map	mean	median	price	prix_moyen	review_scores_rating	scale_colour_gradient	summarize	theme
+unnamed-chunk-18	$	%>%	==	aes	borough	c	data	element_rect	element_text	filter	geom_point	get_stamenmap	ggmap	ggtitle	group_by	labs	latitude	longitude	max	mean	median	min	neighbourhood	price	prix_moyen	review_scores_rating	scale_colour_gradient	summarize	theme
+unnamed-chunk-19	$	$<-	log
+unnamed-chunk-20	c	data	is.numeric	pairs.panels	select_if
+Cramer V	$	cramerV	data	library	table
+export cleaned data	data	write.csv

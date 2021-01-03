@@ -1,0 +1,24 @@
+Libraries	
+import cleaned data	data
+unnamed-chunk-1	theme
+unnamed-chunk-2	data	features_categorical	i	names	plot
+unnamed-chunk-3	features_continuous	features_discrete	i	log_plot	plot
+unnamed-chunk-4	data
+unnamed-chunk-5	data	out	Q
+unnamed-chunk-6	i	plot
+unnamed-chunk-7	df_out	outlier
+unnamed-chunk-8	data
+unnamed-chunk-9	i	plot
+unnamed-chunk-10	data	fac_feature	i
+unnamed-chunk-11	i	plot
+unnamed-chunk-12	
+unnamed-chunk-13	
+unnamed-chunk-14	
+unnamed-chunk-15	
+unnamed-chunk-16	borders	map
+unnamed-chunk-17	by_borough	data
+unnamed-chunk-18	bbox	by_neighbourhood	data_Manhattan	map2
+unnamed-chunk-19	data
+unnamed-chunk-20	mydata
+Cramer V	mytable1	mytable2
+export cleaned data	
