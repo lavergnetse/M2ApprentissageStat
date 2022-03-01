@@ -1,0 +1,493 @@
+---
+title: "Apprentissage Statistique"
+subtitle: "Multi-Class classification"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    keep_md: yes
+    number_sections: true
+  pdf_document: 
+    keep_tex: yes
+    number_sections: true
+fontsize: 12pt
+always_allow_html: true
+header-includes:
+- \usepackage{amsmath}
+- \usepackage[utf8]{inputenc}
+- \newcommand{\E}{\operatorname{E}}
+- \newcommand{\Var}{\operatorname{Var}}
+- \newcommand{\ind}{\mathbb{I}}
+- \newcommand{\tr}{\operatorname{tr}}
+- \newcommand{\R}{\mathbb{R}}
+- \newcommand{\cvd}{\mbox{$\stackrel{d}{\longrightarrow}\,$}}
+- \newcommand{\bcenter}{\begin{center}}
+- \newcommand{\ecenter}{\end{center}}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(warning = FALSE, message = FALSE, 
+               autodep = TRUE, cache = TRUE, eval = TRUE,
+               fig.dim = c(8,4.5), fig.align = 'center')
+options(tinytex.verbose = TRUE)
+```
+
+
+```{r Libraries, include=F}
+library(caret)
+library(corrplot)
+library(DiagrammeR)
+library(dplyr)
+library(forcats)
+library(foreach)
+library(gbm)
+library(ggplot2)
+library(GGally)
+library(glmnet)
+library(grid)
+library(gridExtra)
+library(kernlab)
+library(lubridate)
+library(MLmetrics)
+library(parallel)
+library(psych)
+library(randomForest)
+library(stringr)
+library(tidyr)
+library(vroom)
+library(xgboost)
+library(e1071)
+``` 
+
+**Abstract**: 
+
+The aim of the project is the following : a new company enters the market of mobile phone and want to estimate the the selling price of its mobiles to be fixed.
+
+To estimate this price, we have at our disposal an already prepared data set of 2000 observations which gives the characteristics of the mobile phone (eg:- height, RAM, Internal Memory etc) and its selling price. 
+
+But the particular point here is that we are facing a classification problem: instead of a real observed price, we have a price range (from 0 to 3) indicating how high the price is. 
+
+So let's see how we can deal with this kind of problem.
+
+
+**Data importation**
+
+```{r import data}
+data_mobile <- read.csv("https://raw.githubusercontent.com/lavergnetse/Data/master/train.csv",
+                       sep = ",",  stringsAsFactors = FALSE)
+
+head(data_mobile, 3)
+```
+
+
+Let's have a first look :
+
+```{r view data}
+glimpse(data_mobile)
+```
+
+
+Our set of feature is the following:
+
+- *battery_power*: Total energy a battery can store in one time measured in mAh
+
+- *blue*: Has bluetooth or not
+
+- *clock_speed*: speed at which microprocessor executes instructions 
+
+- *dual_sim*: Has dual sim support or not
+
+- *fc*: Front Camera mega pixels    
+
+- *four_g*: Has 4G or not
+
+- *int_memory*: Internal Memory in Gigabytes
+
+- *m_dep*: Mobile Depth in cm
+
+- *mobile_wt*: Weight of mobile phone
+
+- *n_cores*: Number of cores of processor   
+
+- *pc*: Primary Camera mega pixels
+
+- *px_height*: Pixel Resolution Height
+
+- *px_width*: Pixel Resolution Width
+
+- *ram*: Random Access Memory in Megabytes
+
+- *sc_h*: Screen Height of mobile in cm      
+
+- *sc_w*: Screen Width of mobile in cm
+
+- *talk_time*: longest time that a single battery charge will last when you are
+
+- *three_g*: Has 3G or not
+
+- *touch_screen*: Has touch screen or not
+
+- *wifi*: Has wifi or not
+
+
+Then regarding the target variable *price_range*:
+
+- 0 (low cost)
+- 1 (medium cost)
+- 2 (high cost)
+- 3 (very high cost)
+
+```{r summary data}
+library(Hmisc)
+Hmisc::describe(data_mobile)
+
+```
+
+\
+Now we will skip the data visualization part and will go directly to the prediction part.
+
+# Model prediction
+
+## Dealing with multi-class classification
+
+The famous algorithms we used to use for classic binary classification do not always support classification tasks when there is more than two classes (in particular Logistic Regression and Support Vector Machines). Indeed this specific part of the classification requires other approaches. 
+
+### One-Vs-Rest (OvR)
+
+In a situation where we have n-class, the One-Vs-Rest classification aims to transform the multi-class model into n-binary classifier models. A binary classifier is then trained on each binary classification problem and we combine each of the classifiers’ binary outputs to generate multi-class outputs.
+
+<center>
+
+Figure 1: One-vs-Rest illustration 
+
+[![One-vs-Rest](OvR.jpeg)](https://www.cc.gatech.edu/classes/AY2016/cs4476_fall/results/proj4/html/jnanda3/index.html)
+</center>
+
+\
+In our example of mobile price, it involves running 4 models:
+
+- Classifier 1: 0 vs [1, 2, 3]
+- Classifier 2: 1 vs [0, 2, 3]
+- Classifier 3: 2 vs [0, 1, 3]
+- Classifier 4: 3 vs [0, 1, 2]
+
+Then you can go with logistic regression or decision three algorithms, to mention just a few.
+
+> As you may guess with a large number of class, this approach may be challenging:
+
+
+```{r, eval=FALSE}
+# Create the new classifiers
+data_0 = data_mobile
+data_1 = data_mobile
+data_2 = data_mobile
+data_3 = data_mobile
+
+# 1st classifier
+data_0 <- data_0 %>% mutate(price_range = if_else(price_range == 0, 1, 0)) 
+
+# 2nd classifier
+data_1 <- data_1 %>% mutate(price_range = if_else(price_range == 1, 1, 0)) 
+
+# 3rd classifier
+data_2 <- data_2 %>% mutate(price_range = if_else(price_range == 2, 1, 0)) 
+
+# 4th classifier
+data_3 <- data_3 %>% mutate(price_range = if_else(price_range == 3, 1, 0)) 
+```
+
+\
+Once the creation of classifiers is complete one can train the model by applying the selected algorithms.
+
+<center>
+Figure 2: One-vs-Rest representation
+
+[![One-vs-Rest](OvR_schema.png)](https://www.researchgate.net/figure/The-considered-one-vs-all-multiclass-classification-approach_fig2_257018675)
+</center>
+
+
+
+### One-Vs-One (OvO)
+
+Instead of splitting the the multi-class data set into one binary dataset for each class, the One-Vs-One classification splits it into one binary classification problem per each pair of classes.
+
+Each binary classifier may predict one class label. And then when we input the test data to the classifier, the model with the most predictions or votes is predicted by the OvO strategy.
+
+<center>
+Figure 3: One-vs-One illustration
+
+[![One-vs-One](OvO.jpeg)](https://www.sciencedirect.com/science/article/abs/pii/S0950705116301459)
+</center>
+
+\
+If we have n classes, the formula to compute the number of model to create is the following: $n\times(n-1)/2$
+
+In our example of mobile price, it involves running 6 models:
+
+- Classifier 1: 0 vs 1
+- Classifier 2: 0 vs 2
+- Classifier 3: 0 vs 3
+- Classifier 4: 1 vs 2
+- Classifier 5: 1 vs 3
+- Classifier 6: 2 vs 3
+
+
+<ins> **Example with r**: </ins>
+
+In this example, we will use one-vs-rest support vector machine classifiers (SVM). Indeed the SVM classifies the observation by determining the optimal hyperplane that separates them according to their class, which corresponds to an OvR approach (it reduces the multi-class classification problem to multiple two-class problems)
+
+But first let's split our data into train-set and test-set:
+
+```{r }
+# First we need to transform the output into factor
+# Training set:
+data_mobile <- data_mobile  %>% 
+  mutate(price_range = ifelse(price_range == 0, "low",
+                       ifelse(price_range == 1, "medium",
+                       ifelse(price_range == 2, "high", "very_high"))))
+
+data_mobile$price_range <- as.factor(data_mobile$price_range)
+
+# Data splitting:
+set.seed(777)
+
+trainIndex <- createDataPartition(data_mobile$price_range, 
+                                  p = .75, 
+                                  list = FALSE, 
+                                  times = 1)
+
+train_mobile <- data_mobile[trainIndex,]
+test_mobile  <- data_mobile[-trainIndex,]
+```
+
+
+```{r SVM}
+library(e1071)
+set.seed(777)
+
+svm <- svm(price_range~., data=train_mobile,
+          method="C-classification", kernal="linear")
+
+summary(svm)
+```
+
+\
+Now the Confusion matrix is easy to derive but complex to understand:
+
+```{r}
+# Model performances
+svm_prediction <- predict(svm, test_mobile)
+
+svm_confus <-  confusionMatrix(data = svm_prediction, reference = test_mobile$price_range,
+                               mode = "everything")
+svm_confus
+```
+
+
+### Inherently Multi-class Classifiers
+
+If not all models can support multi-class classification, some other can do so. Let's review them: 
+
+(1) **K-nn**
+
+First as usual we set up our validation set (especially here, we have to select the option
+`multiClassSummary` in `the trainControl` function):
+
+```{r}
+# function to set up random seeds
+setSeeds <- function(method = "cv", numbers = 1, repeats = 1, tunes = NULL, seed = 1237) {
+  #B is the number of resamples and integer vector of M (numbers + tune length if any)
+  B <- if (method == "cv") numbers
+  else if(method == "repeatedcv") numbers * repeats
+  else NULL
+  
+  if(is.null(length)) {
+    seeds <- NULL
+  } else {
+    set.seed(seed = seed)
+    seeds <- vector(mode = "list", length = B)
+    seeds <- lapply(seeds, function(x) sample.int(n = 1000000, size = numbers + ifelse(is.null(tunes), 0, tunes)))
+    seeds[[length(seeds) + 1]] <- sample.int(n = 1000000, size = 1)
+  }
+  # return seeds
+  seeds
+}
+
+
+# Seeds
+rcvSeeds <- setSeeds(method = "repeatedcv", 
+                      numbers = 5, repeats = 5, 
+                      tunes = 100, seed = 777)
+
+# Configure the trainControl argument for cross-validation
+CV <- trainControl(method = "repeatedcv", number = 5, repeats = 5,
+                      classProbs = TRUE, 
+                      savePredictions = TRUE, 
+                      seeds = rcvSeeds,
+                      summaryFunction = multiClassSummary)
+```
+
+
+```{r Knn}
+set.seed(777)
+
+# Parameter tuning
+# grid <- expand.grid(k = seq (30, 80, 5))
+grid <- expand.grid(k = seq (70, 80, 1))
+
+# Model
+multi_knn <- train(price_range ~ . ,
+                   data = train_mobile,
+                   method = "knn",                
+                   preProcess = c("center","scale"),
+                   trControl = CV,
+                   tuneGrid = grid)
+
+library(ggthemes)
+ggplot(multi_knn) + 
+  ggtitle("Optimal number of Neighbors") +
+  ylab("Accuracy Repeated CV") +
+  theme_economist()
+```
+
+
+```{r }
+# Model performances
+knn_prediction <- predict(multi_knn, test_mobile)
+
+knn_confus <-  confusionMatrix(data = knn_prediction, reference = test_mobile$price_range,
+                               mode = "everything")
+knn_confus
+```
+
+\
+(2) **Shrinkage Discriminant Analysis**
+
+This approach is a modification of the classic linear discriminant analysis and corresponds typically to a multi-class linear discriminant analysis but has a smaller variance.
+ 
+```{r Shrinkage Discriminant Analysis, results='hide'}
+set.seed(777)
+library(sda)
+
+# Model
+multi_sda <- train(price_range ~ . ,
+                   data = train_mobile,
+                   method = "sda",
+                   preProcess = c("center", "scale"),
+                   trControl = CV)
+```
+
+```{r echo=FALSE}
+ggplot(multi_sda) + 
+  ylab("Accuracy Repeated CV") +
+  theme_economist()
+```
+
+```{r echo=FALSE}
+# Model performances
+sda_prediction <- predict(multi_sda, test_mobile)
+
+sda_prediction <-  confusionMatrix(data = sda_prediction, reference = test_mobile$price_range,
+                               mode = "everything")
+sda_prediction
+```
+
+\
+(3) **Random Forest**
+
+```{r RF}
+set.seed(777)
+
+# Parameter tuning
+grid <- expand.grid(.mtry = seq (3, 5, 1))
+
+# Model
+multi_rf <- train(price_range ~ . ,
+                   data = train_mobile,
+                   method = "rf",
+                   trControl = CV,
+                   tuneGrid = grid)
+
+ggplot(multi_rf) + 
+  ylab("Accuracy Repeated CV") +
+  theme_economist()
+```
+
+
+```{r echo=FALSE}
+# Model performances
+rf_prediction <- predict(multi_rf, test_mobile)
+
+rf_confus <-  confusionMatrix(data = rf_prediction, reference = test_mobile$price_range,
+                               mode = "everything")
+rf_confus
+```
+
+\
+**Model selection**
+
+```{r Model comparison}
+resample_results <- resamples(list(Knn=multi_knn,
+                                   SDA=multi_sda,
+                                   RandomForest = multi_rf))
+
+models_name <- c("Knn", "SDA", "RandomForest")
+
+df = data.frame()
+for (i in models_name){
+  metrics = data.frame (model = i, 
+                  Kappa = resample_results$values[paste(i,"Kappa", sep = "~")],
+                  Accuracy = resample_results$values[paste(i,"Accuracy", sep = "~")],
+                  logLoss = resample_results$values[paste(i,"logLoss", sep = "~")])
+  metrics <- metrics %>% rename(Kappa = paste(i,"Kappa", sep = "."))
+  metrics <- metrics %>% rename(Accuracy = paste(i,"Accuracy", sep = "."))
+  metrics <- metrics %>% rename(logLoss = paste(i,"logLoss", sep = "."))
+  df <- rbind(df,metrics)
+}
+
+# So let's plot :
+```
+
+
+```{r, echo=FALSE}
+# Kappa
+ggplot(data = df, aes(x = fct_reorder(model, Kappa, .desc = T), 
+                      y = Kappa, fill = model)) +
+  geom_boxplot(outlier.colour = "darkblue", outlier.size = 2, alpha=0.2) +
+  theme_economist() + 
+  labs(x = "", y = "Kappa") +
+  ggtitle("Model performance by Kappa")
+```
+
+```{r, echo=FALSE}
+# Accuracy
+ggplot(data = df, aes(x = fct_reorder(model, Accuracy, .desc = T), 
+                      y = Accuracy, fill = model)) +
+  geom_boxplot(outlier.colour = "darkblue", outlier.size = 2, alpha=0.2) +
+  theme_economist() + 
+  labs(x = "", y = "Accuracy") +
+  ggtitle("Model performance by Accuracy")
+```
+
+```{r, echo=FALSE}
+# logLoss
+ggplot(data = df, aes(x = fct_reorder(model, logLoss, .desc = T), 
+                      y = logLoss, fill = model)) +
+  geom_boxplot(outlier.colour = "darkblue", outlier.size = 2, alpha=0.2) +
+  theme_economist() + 
+  labs(x = "", y = "logLoss") +
+  ggtitle("Model performance by logLoss")
+```
+
+> The log-Loss measures the performance of a classification model where the prediction input
+> is a probability value between 0 and 1. This metric increases as the predicted probability
+> diverge from the actual label. Thus a log loss close to 0 is better.
+
+
+Well, this concludes this quick overview of the different ways to treat multi-class classification problem. Now you can practice and try to find the best prediction score on Kaggle with this already prepared test set:
+
+```{r import test data, eval=FALSE}
+testing_set <- read.csv("https://raw.githubusercontent.com/lavergnetse/Data/master/test.csv",
+                       sep = ",",  stringsAsFactors = FALSE)
+```
+
